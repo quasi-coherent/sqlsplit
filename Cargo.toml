@@ -7,7 +7,7 @@ repository = "https://github.com/quasi-coherent/sqlsplit"
 description = "A nom parser for splitting SQL statements"
 authors = ["Daniel Donohue <d.michael.donohue@gmail.com>"]
 keywords = ["sql", "parser"]
-categories = ["parsing tools"]
+categories = ["parser-implementations"]
 
 [lib]
 name = "nom_sql"
