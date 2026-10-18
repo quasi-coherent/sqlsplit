@@ -14,6 +14,9 @@
 //! let stats: Vec<_> = Statement::postgres().iter_statements(SQL).collect();
 //! assert_eq!(stats, vec!["SELECT 1;", "SELECT /* comment; block */ 1;"]);
 //! ```
+//!
+//! [`nom`]: https://docs.rs/nom/8.0.0/nom/
+//! [`Dialect`]: dialect::Dialect
 pub mod bytes;
 pub mod dialect;
 

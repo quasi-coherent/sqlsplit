@@ -82,19 +82,31 @@
                 src = crane.cleanCargoSource ./.;
                 strictDeps = true;
               };
+              cargoArtifacts = crane.buildDepsOnly args;
             in
             {
               test = crane.cargoNextest (
                 args
                 // {
-                  cargoArtifacts = crane.buildDepsOnly args;
+                  inherit cargoArtifacts;
+                  partitions = 1;
+                  partitionType = "count";
+                  cargoNextestPartitionsExtraArgs = "--no-tests=pass";
                 }
               );
 
               lint = crane.cargoClippy (
                 args
                 // {
-                  cargoArtifacts = crane.buildDepsOnly args;
+                  inherit cargoArtifacts;
+                }
+              );
+
+              docs = crane.cargoDoc (
+                args
+                // {
+                  inherit cargoArtifacts;
+                  env.RUSTDOCFLAGS = "--deny rustdoc::broken-intra-doc-links";
                 }
               );
             };
