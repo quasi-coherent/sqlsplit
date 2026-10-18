@@ -1,5 +1,6 @@
 //! Custom parsing directives to include.
 use nom::branch::alt;
+use nom::combinator::fail;
 use nom::error::{Error, ParseError};
 use nom::{IResult, Parser};
 
@@ -12,6 +13,19 @@ pub trait Dialect<'a> {
 
     /// Specific parsing rules to apply for this dialect.
     fn parse(&self, i: &'a str) -> IResult<&'a str, &'a str, Self::Error>;
+}
+
+/// Do not add any additional parsing rules beyond the defaults.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Defaults;
+
+impl<'a> Dialect<'a> for Defaults {
+    type Error = Error<&'a str>;
+
+    fn parse(&self, i: &'a str) -> IResult<&'a str, &'a str, Self::Error> {
+        // `fail` always fails, which just means "go to the next branch."
+        fail().parse(i)
+    }
 }
 
 /// PostgreSQL parser rules.

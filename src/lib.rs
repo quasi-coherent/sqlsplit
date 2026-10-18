@@ -11,7 +11,10 @@
 //! use nom_sql::Statement;
 //!
 //! const SQL: &str = "SELECT 1; SELECT /* comment; block */ 1;";
-//! let stats: Vec<_> = Statement::postgres().iter_statements(SQL).collect();
+//! let stats: Vec<_> = Statement::postgres()
+//!     .iter_statements(SQL)
+//!     .map(Result::unwrap)
+//!     .collect();
 //! assert_eq!(stats, vec!["SELECT 1;", "SELECT /* comment; block */ 1;"]);
 //! ```
 //!
@@ -22,3 +25,6 @@ pub mod dialect;
 
 mod parser;
 pub use parser::{Statement, Statements};
+
+#[doc(hidden)]
+pub use nom::Parser;

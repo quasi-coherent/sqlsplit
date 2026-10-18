@@ -1,6 +1,6 @@
 use nom::error::Error;
 use nom_sql::Statement;
-use nom_sql::dialect::{Dialect, MySql, Postgres, Sqlite};
+use nom_sql::dialect::{Defaults, Dialect, MySql, Postgres, Sqlite};
 
 fn split<'a, D>(dialect: D, sql: &'a str) -> Vec<&'a str>
 where
@@ -48,6 +48,42 @@ fn postgres_dollar_quoted() {
 }
 
 #[test]
+fn postgres_function() {
+    let sql = "CREATE FUNCTION add(a integer, b integer) RETURNS integer AS $$\n\tBEGIN\n\t\tRETURN a + b;\n\tEND;\n$$ LANGUAGE plpgsql;\nSELECT add(1, 2);";
+    assert_eq!(
+        split(Postgres, sql),
+        [
+            "CREATE FUNCTION add(a integer, b integer) RETURNS integer AS $$\n\tBEGIN\n\t\tRETURN a + b;\n\tEND;\n$$ LANGUAGE plpgsql;",
+            "SELECT add(1, 2);"
+        ],
+    )
+}
+
+#[test]
+fn postgres_transaction() {
+    let sql = "BEGIN;\n\tDELETE FROM t WHERE x ='a;b';\nROLLBACK;\nSELECT x\nFROM t\nWHERE x = 'a;b';";
+    assert_eq!(
+        split(Postgres, sql),
+        [
+            "BEGIN;\n\tDELETE FROM t WHERE x ='a;b';\nROLLBACK;",
+            "SELECT x\nFROM t\nWHERE x = 'a;b';",
+        ]
+    )
+}
+
+#[test]
+fn postgres_transaction_case() {
+    let sql = "BEGIN;\nUPDATE t SET x = CASE WHEN y THEN 1 ELSE 2 END;\nCOMMIT;\nSELECT 2;";
+    assert_eq!(
+        split(Postgres, sql),
+        [
+            "BEGIN;\nUPDATE t SET x = CASE WHEN y THEN 1 ELSE 2 END;\nCOMMIT;",
+            "SELECT 2;",
+        ]
+    )
+}
+
+#[test]
 fn postgres_positional_parameters() {
     let sql = "SELECT $1, $2;\nSELECT 2;";
     assert_eq!(split(Postgres, sql), ["SELECT $1, $2;", "SELECT 2;"]);
@@ -78,4 +114,17 @@ fn mysql_hash_comment() {
 fn sqlite_backtick_identifier() {
     let sql = "SELECT `a;b` FROM t;\nSELECT 2;";
     assert_eq!(split(Sqlite, sql), ["SELECT `a;b` FROM t;", "SELECT 2;"]);
+}
+
+#[test]
+fn default_dialect() {
+    let sql = "SELECT 1;\nSELECT 'a;b' AS c;\n-- comment with ; in it\nSELECT 1\nWHERE x = 'a;b;c;'\n;";
+    assert_eq!(
+        split(Defaults, sql),
+        [
+            "SELECT 1;",
+            "SELECT 'a;b' AS c;",
+            "-- comment with ; in it\nSELECT 1\nWHERE x = 'a;b;c;'\n;"
+        ]
+    )
 }

@@ -2,12 +2,18 @@
 use nom::{OutputMode, PResult, Parser};
 
 use crate::bytes::complete;
-use crate::dialect::{Dialect, MySql, Postgres, Sqlite};
+use crate::dialect::{Defaults, Dialect, MySql, Postgres, Sqlite};
 
 /// Parser for one statement, including its terminating `;` when present.
 #[derive(Clone, Copy, Debug)]
-pub struct Statement<D> {
+pub struct Statement<D = Defaults> {
     dialect: D,
+}
+
+impl Default for Statement {
+    fn default() -> Self {
+        Self { dialect: Defaults }
+    }
 }
 
 impl<D> Statement<D> {
@@ -16,24 +22,30 @@ impl<D> Statement<D> {
         Self { dialect }
     }
 
-    /// New PostgreSQL statement parser.
-    pub fn postgres() -> Statement<Postgres> {
-        Statement { dialect: Postgres }
-    }
-
-    /// New SQLite statement parser.
-    pub fn sqlite() -> Statement<Sqlite> {
-        Statement { dialect: Sqlite }
-    }
-
-    /// New MySQL statement parser.
-    pub fn mysql() -> Statement<MySql> {
-        Statement { dialect: MySql }
-    }
-
     /// Return an iterator over the parsed statements.
     pub fn iter_statements<'a>(self, input: &'a str) -> Statements<'a, D> {
         Statements::new(self, input)
+    }
+}
+
+impl Statement<Postgres> {
+    /// New PostgreSQL statement parser.
+    pub fn postgres() -> Self {
+        Self::new(Postgres)
+    }
+}
+
+impl Statement<Sqlite> {
+    /// New SQLite statement parser.
+    pub fn sqlite() -> Self {
+        Self::new(Sqlite)
+    }
+}
+
+impl Statement<MySql> {
+    /// New MySQL statement parser.
+    pub fn mysql() -> Self {
+        Self::new(MySql)
     }
 }
 
@@ -46,7 +58,7 @@ impl<'a, D: Dialect<'a>> Parser<&'a str> for Statement<D> {
         i: &'a str,
     ) -> PResult<OM, &'a str, &'a str, D::Error> {
         let dialect = &self.dialect;
-        (|i| complete::statement(dialect, i)).process::<OM>(i)
+        complete::statement(dialect).process::<OM>(i)
     }
 }
 

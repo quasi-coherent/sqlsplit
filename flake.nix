@@ -85,13 +85,31 @@
               cargoArtifacts = crane.buildDepsOnly args;
             in
             {
+              build = crane.buildPackage (
+                args
+                // {
+                  inherit cargoArtifacts;
+                  inherit (crane.crateNameFromCargoToml { cargoToml = ./Cargo.toml; }) pname version;
+                  cargoBuildExtraArgs = "--all-targets";
+                }
+              );
+
               test = crane.cargoNextest (
                 args
                 // {
                   inherit cargoArtifacts;
                   partitions = 1;
                   partitionType = "count";
+                  cargoNextestExtraArgs = "--all-targets";
                   cargoNextestPartitionsExtraArgs = "--no-tests=pass";
+                }
+              );
+
+              doctests = crane.cargoTest (
+                args
+                // {
+                  inherit cargoArtifacts;
+                  cargoTestExtraArgs = "--doc";
                 }
               );
 

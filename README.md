@@ -14,5 +14,39 @@ A simple [`nom`] parser library for splitting a string containing SQL into indiv
 
 See the [documentation][docs] for more.
 
+## Usage
+
+Add the following to your Cargo.toml:
+
+```toml
+sqlsplit = "0.1.1"
+```
+
+`sqlsplit` provides a parser combinator `statement` that is used normally
+
+```rust
+use nom_sql::Parser as _;
+use nom_sql::bytes::complete::statement;
+use nom_sql::dialect::Postgres;
+
+const SQL: &str = "SELECT 1; SELECT /* comment; block */ 1;";
+// Tuple of (remainder after parse, parsed statement):
+let (_rest, stat) = statement(&Postgres).parse(SQL).unwrap();
+assert_eq!("SELECT 1;", stat);
+```
+
+and a parser iterator
+
+```rust
+use nom_sql::Statement;
+
+Statement::postgres().iter_statements(SQL).for_each(|r| {
+    println!("{}", r?);
+});
+```
+
+See the [examples][eg] for more example use.
+
 [`nom`]: https://docs.rs/nom/8.0.0/nom/
-[docs]:  https://docs.rs/sqlsplit/latest/sqlsplit/
+[docs]:  https://docs.rs/sqlsplit/latest/nom_sql/
+[eg]: https://github.com/quasi-coherent/sqlsplit/tree/master/examples

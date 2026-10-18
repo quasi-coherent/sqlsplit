@@ -17,21 +17,34 @@ use crate::dialect::Dialect;
 ///
 /// The `dialect` rules are tried first, so they take precedence over the
 /// common rules they overlap with.
-pub fn statement<'a, D, E>(d: &D, i: &'a str) -> IResult<&'a str, &'a str, E>
+pub fn statement<'a, D, E>(
+    d: &D,
+) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E>
 where
     D: Dialect<'a, Error = E>,
     E: ParseError<&'a str>,
 {
-    let base = alt((
+    move |i: &'a str| through(i, |i: &'a str| token(i, d), chr(';'))
+}
+
+// The parts of a statement where ';' can't end it.
+fn token<'a, D, E>(i: &'a str, d: &D) -> IResult<&'a str, &'a str, E>
+where
+    D: Dialect<'a, Error = E>,
+    E: ParseError<&'a str>,
+{
+    alt((
         |i: &'a str| dialect(i, d),
         |i: &'a str| line_comment(i),
         |i: &'a str| block_comment(i),
         quoted(Quoted::new('\'', '\'')),
         quoted(Quoted::new('\"', '\"')),
+        |i: &'a str| begin_end(i, d),
+        |i: &'a str| case_end(i, d),
         word,
         recognize(anychar),
-    ));
-    through(i, base, chr(';'))
+    ))
+    .parse(i)
 }
 
 // Custom `Dialect` parser.
@@ -168,15 +181,25 @@ pub fn dollar_quoted<'a, E: ParseError<&'a str>>(
 }
 
 /// Parse a `BEGIN ... [END/COMMIT/ROLLBACK]` block.
-pub fn begin_end<'a, E: ParseError<&'a str>>(
-    i: &'a str,
-) -> IResult<&'a str, &'a str, E> {
+pub fn begin_end<'a, D, E>(i: &'a str, d: &D) -> IResult<&'a str, &'a str, E>
+where
+    D: Dialect<'a, Error = E>,
+    E: ParseError<&'a str>,
+{
     let (rest, _) = keyword("begin").parse(i)?;
-    let (rest, _) = terminated(
-        take_while1(is_any_text_char),
-        alt((tag("end"), tag("commit"), tag("rollback"))),
-    )
-    .parse(rest)?;
+    let end = alt((keyword("end"), keyword("commit"), keyword("rollback")));
+    let (rest, _) = through(rest, |i: &'a str| token(i, d), end)?;
+    Ok((rest, recognized(i, rest)))
+}
+
+/// Parse a `CASE ... END` expression.
+pub fn case_end<'a, D, E>(i: &'a str, d: &D) -> IResult<&'a str, &'a str, E>
+where
+    D: Dialect<'a, Error = E>,
+    E: ParseError<&'a str>,
+{
+    let (rest, _) = keyword("case").parse(i)?;
+    let (rest, _) = through(rest, |i: &'a str| token(i, d), keyword("end"))?;
     Ok((rest, recognized(i, rest)))
 }
 
@@ -201,10 +224,6 @@ fn is_word_char(c: char) -> bool {
 
 fn is_tag_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
-}
-
-fn is_any_text_char(c: char) -> bool {
-    c.is_ascii_alphanumeric() || c.is_ascii_whitespace()
 }
 
 // The prefix of `input` consumed in reaching `rest`.
