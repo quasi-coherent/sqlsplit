@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/quasi-coherent/sqlsplit"
+description = "A nom parser for splitting SQL statements"
 authors = ["Daniel Donohue <d.michael.donohue@gmail.com>"]
 keywords = ["database", "sql", "postgres", "mysql", "sqlite", "parser"]
 categories = ["parsing tools"]
