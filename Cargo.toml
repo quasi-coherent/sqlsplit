@@ -8,6 +8,7 @@ description = "A nom parser for splitting SQL statements"
 authors = ["Daniel Donohue <d.michael.donohue@gmail.com>"]
 keywords = ["sql", "parser"]
 categories = ["parser-implementations"]
+rust-version = "1.85.1"
 
 [lib]
 name = "nom_sql"

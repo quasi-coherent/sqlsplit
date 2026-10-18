@@ -51,7 +51,6 @@
           devShells.default = pkgs.mkShell {
             packages = [
               fmtt
-              pkgs.cargo-expand
               pkgs.cargo-flamegraph
               pkgs.cargo-semver-checks
               pkgs.cargo-msrv
